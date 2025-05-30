@@ -4,6 +4,8 @@ const I_taxaAnual = document.getElementById('taxaAnual');
 const I_porcentagem = document.getElementById('porcentagem');
 const I_periodo = document.getElementById('periodo');
 const I_periodo_quant = document.getElementById('periodo_quant');
+const I_diasCorridos = document.getElementById('I_diasCorridos');
+const Div_diasCorridos = document.getElementById('Div_diasCorridos');
 //Resultados
 const R_resultado = document.getElementById('resultado');
 const R_iIof = document.getElementById('R_iIof');
@@ -25,6 +27,7 @@ const tabelaIOF = [
     0.30, 0.26, 0.23, 0.20, 0.16, 0.13, 0.10, 0.06, 0.03, 0.00
 ];
 
+// Eventos
 I_periodo.addEventListener('change', () => {
     if (I_periodo.value === 'mensal') label.innerHTML = 'Quantidade de meses <i class="bi bi-calendar2-month"></i>';
     else if (I_periodo.value === 'diario') label.innerHTML = 'Quantidade de dias úteis <i class="bi bi-calendar-day"></i>';
@@ -39,24 +42,22 @@ I_valor.addEventListener('input', () => {
 
 I_taxaAnual.addEventListener('input', calcular);
 I_porcentagem.addEventListener('input', calcular);
+I_diasCorridos.addEventListener('input', calcular);
 I_periodo_quant.addEventListener('input', calcular);
-
 
 window.onload = () => {
     formatarMoeda(I_valor);
     calcular()
 };
 
+
 function formatarMoeda(elemento) {
     let valor = elemento.value;
 
     // Remove tudo oque não for número
-    valor = valor.replace(/\D/g,
-        '');
-
+    valor = valor.replace(/\D/g, '');
     // Converte para float e divide por 100 para obter os centavos.
     let numero = parseFloat(valor) / 100;
-
     // Formata a saida para o padrão brasileiro
     elemento.value = numero.toLocaleString('pt-BR',
         {
@@ -73,6 +74,7 @@ function calcular() {
     let taxaAnual = (parseFloat(I_taxaAnual.value) / 100) * porcentagem;
     let periodo = I_periodo.value;
     let periodo_quant = Math.floor(parseFloat(I_periodo_quant.value));
+    let Inp_diasCorridos = Math.floor(parseFloat(I_diasCorridos.value));
     let iof = 0;
     let diasUteis = 0;
     let diasCorridos = 0;
@@ -85,26 +87,34 @@ function calcular() {
         return;
     }
 
+    //Define, de acordo com as entradas, qual é a taxa de rendimento por dia útil
     taxaDiaria = Math.pow(1 + taxaAnual, 1 / 252) - 1;
 
-    // Define a quantidade de dias, úteis e corridos/taxa de acordo com o tipo de periodo
+    // Define a quantidade de dias, úteis e corridos/ taxa de acordo com o tipo de periodo
+    if (Inp_diasCorridos < diasUteis) {
+        I_diasCorridos.value = diasUteis;
+    }
+
     switch (periodo) {
         case 'mensal':
             diasUteis = periodo_quant * 21;
             diasCorridos = periodo_quant * 30;
             taxa = (Math.pow(1 + taxaDiaria, 21) - 1); // taxa mensal
+            Div_diasCorridos.style.display = 'none';
             break;
 
         case 'anual':
             diasUteis = periodo_quant * 252;
             diasCorridos = periodo_quant * 365;
             taxa = (Math.pow(1 + taxaDiaria, 252) - 1); //taxa anual
+            Div_diasCorridos.style.display = 'none';
             break;
 
         default:
             diasUteis = periodo_quant;
-            diasCorridos = periodo_quant;
+            diasCorridos = Inp_diasCorridos;
             taxa = taxaDiaria; // Taxa diaria
+            Div_diasCorridos.style.display = 'block';
     }
 
     // Define o rendimento do período
@@ -139,6 +149,7 @@ function calcular() {
 
     // Define o custo do I.R. em reais
     let ir = (rendimentoBruto - iof) * irAliquota;
+   
     //Define o rendimento liquído
     let rendimentoLiquido = rendimentoBruto - iof - ir;
 
@@ -167,22 +178,32 @@ function calcular() {
 
     //RESULTADOS
     //R_ = Resultado
+
+    const factor = 10 ** 2;
+     
+    ir = Math.floor(ir * factor) / factor;
+
+    //Rendimento Líquido
     R_rLiquido.innerText = `${rendimentoLiquido.toLocaleString('pt-BR', {
         style: 'currency', currency: 'BRL'
     })} (${Pm_rLiquido})`;
 
+    //Rendimento Bruto
     R_rBruto.innerText = `${rendimentoBruto.toLocaleString('pt-BR', {
         style: 'currency', currency: 'BRL'
     })} (${Pm_rbruto})`;
 
+    //IOF
     R_iIof.innerText = `${iof.toLocaleString('pt-BR', {
         style: 'currency', currency: 'BRL'
     })} (${Pm_iIof})`
 
+    //I.R.
     R_iRenda.innerText = `${ir.toLocaleString('pt-BR', {
         style: 'currency', currency: 'BRL'
     })} (${Pm_iRenda})`;
 
+    //Total Acumulado
     R_totalAcumulado.innerText = `${(valor + rendimentoLiquido).toLocaleString('pt-BR', {
         style: 'currency', currency: 'BRL'
     })} (${Pm_totalAcomulado})`;
